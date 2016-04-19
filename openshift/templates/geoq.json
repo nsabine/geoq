@@ -262,12 +262,12 @@
             "imageChangeParams": {
               "automatic": false,
               "containerNames": [
-                "postgresql"
+                "postgis"
               ],
               "from": {
                 "kind": "ImageStreamTag",
                 "namespace": "${NAMESPACE}",
-                "name": "postgresql:9.4"
+                "name": "postgis:2_94"
               }
             }
           },
@@ -289,8 +289,8 @@
           "spec": {
             "containers": [
               {
-                "name": "postgresql",
-                "image": "postgresql",
+                "name": "postgis",
+                "image": "postgis",
                 "ports": [
                   {
                     "containerPort": 5432
