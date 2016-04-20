@@ -11,19 +11,26 @@ GeoQ requires the PostGIS extensions to be present in your PostgreSQL container.
 # Log into the CDK environment: 
 cd ~/cdk/components/rhel/rhel-osp
 vagarant ssh
+# Clone this repo
+git clone https://github.com/jason-callaway/geoq.git
+cd geoq
 # Log into OSE as admin 
 oc login -u admin -p admin
-git clone https://github.com/jason-callaway/geoq-postgresql.git --recursive
-cd geoq-postgresql/rhel7.rh-postgis2_94
- docker build -t postgis .
+cd postgis
+docker build -t postgis .
+cd ..
 # Determine the registry IP and image ID
-REGISTRY=$(oc get services/docker-registry | grep ^docker | awk '{    print $2}')
+REGISTRY=$(oc get services/docker-registry | grep ^docker | awk '{print $2}')
 IMAGE_ID=$(docker images | grep ^postgis | awk '{print $3}')
 # Tag the image
 docker tag ${IMAGE_ID} ${REGISTRY}:5000/openshift/postgis:latest
 docker tag ${IMAGE_ID} ${REGISTRY}:5000/openshift/postgis:2_94
 # Push to the registry
+OCTOKEN=$(oc whoami -t)
+docker login -u admin -p ${OCTOKEN} -e admin@example.com ${REGISTRY}:5000
 docker push ${REGISTRY}:5000/openshift/postgis:latest
 docker push ${REGISTRY}:5000/openshift/postgis:2_94
+# Build the geoq template
+oc create -f templates/geoq.json
 ```
 
