@@ -1,0 +1,20 @@
+#!/bin/bash
+
+paver install_dependencies
+paver sync
+paver install_dev_fixtures
+
+npm install -g less
+
+cat << EOF > geoq/local_settings.py
+STATIC_URL_FOLDER = '/static'
+STATIC_ROOT = '{0}{1}'.format('/var/www/html', STATIC_URL_FOLDER)
+EOF
+
+python manage.py collectstatic
+
+if [[ -f "$APP_FILE" ]]; then
+  echo "---> Running application from Python script ($APP_FILE) ..."
+  exec python "$APP_FILE"
+fi
+echo "WARNING: file '$APP_FILE' not found."
