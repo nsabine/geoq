@@ -20,7 +20,7 @@ cd postgis
 docker build -t postgis .
 cd ..
 # Determine the registry IP and image ID
-REGISTRY=$(oc get services/docker-registry | grep ^docker | awk '{print $2}')
+REGISTRY=$(oc get services/docker-registry -n default | grep ^docker | awk '{print $2}')
 IMAGE_ID=$(docker images | grep ^postgis | awk '{print $3}')
 # Tag the image
 docker tag ${IMAGE_ID} ${REGISTRY}:5000/openshift/postgis:latest
