@@ -23,6 +23,8 @@ if [[ -f setup.py ]]; then
   python setup.py develop --user
 fi
 
+yum install -y npm
+
 if should_collectstatic; then
   (
     echo "---> Collecting Django static files ..."
