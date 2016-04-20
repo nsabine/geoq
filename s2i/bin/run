@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 paver install_dependencies
 paver sync
@@ -13,8 +13,4 @@ EOF
 
 python manage.py collectstatic
 
-if [[ -f "$APP_FILE" ]]; then
-  echo "---> Running application from Python script ($APP_FILE) ..."
-  exec python "$APP_FILE"
-fi
-echo "WARNING: file '$APP_FILE' not found."
+paver start_django
