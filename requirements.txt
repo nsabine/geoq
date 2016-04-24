@@ -2,4 +2,3 @@ paver
 django
 south
 django_select2
-reversion
