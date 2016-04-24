@@ -5,3 +5,4 @@ django_select2
 django-reversion
 easy_thumbnails
 django-userena
+django-http-proxy
