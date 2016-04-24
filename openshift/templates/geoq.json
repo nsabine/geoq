@@ -287,17 +287,13 @@
         "source": {
             "type": "Git",
             "git": {
-                "uri": "https://github.com/jason-callaway/rhscl-dockerfiles"
-            },
-            "contextDir": "rhel7.rh-postgis2_94"
+                "uri": "https://github.com/jason-callaway/crunchy-postgres-container-94"
+            }
         },
         "strategy": {
             "type": "Docker",
             "dockerStrategy": {
-                "from": {
-                    "kind": "DockerImage",
-                    "name": "registry.access.redhat.com/library/rhel7:latest"
-                }
+		"dockerfilePath": "Dockerfile.rhel7"
             }
         },
         "output": {
