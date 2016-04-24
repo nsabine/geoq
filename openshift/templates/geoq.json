@@ -83,7 +83,7 @@
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
-              "name": "python:3.4"
+              "name": "python:2.7"
             }
           }
         },
@@ -164,22 +164,22 @@
                     "containerPort": 8080
                   }
                 ],
-                "readinessProbe": {
-                  "timeoutSeconds": 3,
-                  "initialDelaySeconds": 3,
-                  "httpGet": {
-                    "path": "/health",
-                    "port": 8080
-                  }
-                },
-                "livenessProbe": {
-                  "timeoutSeconds": 3,
-                  "initialDelaySeconds": 30,
-                  "httpGet": {
-                    "path": "/health",
-                    "port": 8080
-                  }
-                },
+	        "readinessProbe": {
+			"timeoutSeconds": 3,
+			"initialDelaySeconds": 3,
+			"httpGet": {
+				"path": "/health",
+				"port": 8080
+			}
+		},
+		"livenessProbe": {
+			"timeoutSeconds": 3,
+			"initialDelaySeconds": 30,
+			"httpGet": {
+				"path": "/health",
+				"port": 8080
+			}
+		},
                 "env": [
                   {
                     "name": "DATABASE_SERVICE_NAME",
@@ -206,6 +206,10 @@
                     "value": "${APP_CONFIG}"
                   },
                   {
+                    "name": "APP_FILE",
+                    "value": "${APP_FILE}"
+                  },
+                  {
                     "name": "DJANGO_SECRET_KEY",
                     "value": "${DJANGO_SECRET_KEY}"
                   }
@@ -214,7 +218,9 @@
                   "limits": {
                     "memory": "${MEMORY_LIMIT}"
                   }
-                }
+                },
+		"imagePullPolicy": "Always"
+
               }
             ]
           }
@@ -239,61 +245,146 @@
           }
         ],
         "selector": {
-          "name": "${DATABASE_SERVICE_NAME}"
+          "app": "${DATABASE_SERVICE_NAME}"
         }
       }
     },
     {
-      "kind": "DeploymentConfig",
-      "apiVersion": "v1",
-      "metadata": {
+	"kind": "ImageStream",
+	"apiVersion": "v1",
+	"metadata": {
+		"name": "${DATABASE_SERVICE_NAME}",
+		"annotations": {
+			"description": "Keeps track of changes in the application image"
+		}
+	}
+    },
+
+
+
+{
+    "kind": "BuildConfig",
+    "apiVersion": "v1",
+    "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
+        "namespace": "geoq",
+        "labels": {
+            "app": "${DATABASE_SERVICE_NAME}"
+        },
+        "annotations": {
+          "description": "Defines how to build the database"
+        }
+    },
+    "spec": {
+        "triggers": [
+            {
+                "type": "ImageChange"
+            },
+            {
+                "type": "ConfigChange"
+            }
+        ],
+        "source": {
+            "type": "Git",
+            "git": {
+                "uri": "https://github.com/jason-callaway/rhscl-dockerfiles"
+            },
+            "contextDir": "rhel7.rh-postgis2_94"
+        },
+        "strategy": {
+            "type": "Docker",
+            "dockerStrategy": {
+                "from": {
+                    "kind": "DockerImage",
+                    "name": "registry.access.redhat.com/library/rhel7:latest"
+                }
+            }
+        },
+        "output": {
+            "to": {
+                "kind": "ImageStreamTag",
+                "name": "${DATABASE_SERVICE_NAME}:latest"
+            }
+        }
+    }
+},
+
+
+
+
+
+
+
+
+
+{
+    "kind": "DeploymentConfig",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}",
+        "namespace": "geoq",
+        "labels": {
+            "app": "${DATABASE_SERVICE_NAME}"
+        },
         "annotations": {
           "description": "Defines how to deploy the database"
         }
-      },
-      "spec": {
+    },
+    "spec": {
         "strategy": {
-          "type": "Recreate"
+            "type": "Rolling",
+            "rollingParams": {
+                "updatePeriodSeconds": 1,
+                "intervalSeconds": 1,
+                "timeoutSeconds": 600,
+                "maxUnavailable": "25%",
+                "maxSurge": "25%"
+            },
+            "resources": {}
         },
         "triggers": [
-          {
-            "type": "ImageChange",
-            "imageChangeParams": {
-              "automatic": false,
-              "containerNames": [
-                "postgis"
-              ],
-              "from": {
-                "kind": "ImageStreamTag",
-                "namespace": "${NAMESPACE}",
-                "name": "postgis:2_94"
-              }
+            {
+                "type": "ConfigChange"
+            },
+            {
+                "type": "ImageChange",
+                "imageChangeParams": {
+                    "automatic": true,
+                    "containerNames": [
+                        "${DATABASE_SERVICE_NAME}"
+                    ],
+                    "from": {
+                        "kind": "ImageStreamTag",
+                        "name": "${DATABASE_SERVICE_NAME}:latest"
+                    }
+                }
             }
-          },
-          {
-            "type": "ConfigChange"
-          }
         ],
         "replicas": 1,
         "selector": {
-          "name": "${DATABASE_SERVICE_NAME}"
+            "app": "${DATABASE_SERVICE_NAME}",
+            "deploymentconfig": "${DATABASE_SERVICE_NAME}"
         },
         "template": {
-          "metadata": {
-            "name": "${DATABASE_SERVICE_NAME}",
-            "labels": {
-              "name": "${DATABASE_SERVICE_NAME}"
-            }
-          },
-          "spec": {
+            "metadata": {
+                "creationTimestamp": null,
+                "labels": {
+                    "app": "${DATABASE_SERVICE_NAME}",
+                    "deploymentconfig": "${DATABASE_SERVICE_NAME}"
+                },
+                "annotations": {
+                    "openshift.io/generated-by": "OpenShiftNewApp"
+                }
+            },
+            "spec": {
             "containers": [
               {
-                "name": "postgis",
-                "image": "postgis",
+                "name": "${DATABASE_SERVICE_NAME}",
+                "image": "${DATABASE_SERVICE_NAME}",
                 "ports": [
                   {
-                    "containerPort": 5432
+                    "containerPort": 5432,
+                                "protocol": "TCP"
                   }
                 ],
                 "env": [
@@ -328,13 +419,30 @@
                   "limits": {
                     "memory": "${MEMORY_POSTGRESQL_LIMIT}"
                   }
-                }
+                },
+                        "imagePullPolicy": "Always"
               }
             ]
-          }
+            }
         }
-      }
     }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   ],
   "parameters": [
     {
@@ -394,7 +502,7 @@
     {
       "name": "DATABASE_SERVICE_NAME",
       "displayName": "Database Service Name",
-      "value": "postgresql"
+      "value": "postgis"
     },
     {
       "name": "DATABASE_ENGINE",
@@ -422,6 +530,12 @@
       "name": "APP_CONFIG",
       "displayName": "Application Configuration File Path",
       "description": "Relative path to Gunicorn configuration file (optional)."
+    },
+    {
+      "name": "APP_FILE",
+      "displayName": "Application File Path",
+      "description": "Relative path to primary application script.",
+      "value": "pavement.py"
     },
     {
       "name": "DJANGO_SECRET_KEY",
