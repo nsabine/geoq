@@ -6,3 +6,4 @@ django-reversion
 easy_thumbnails
 django-userena
 django-http-proxy
+humanize
